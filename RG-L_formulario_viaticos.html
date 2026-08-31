@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>RG-L - Reconocimiento de Gastos Liquidación</title>
+<style>
+  * { box-sizing: border-box; }
+
+  :root {
+    --azul: #1a4d7a;
+    --azul-claro: #e8f0f8;
+    --gris-borde: #cfd8e3;
+    --verde: #27ae60;
+    --rojo: #c0392b;
+  }
+
+  body {
+    font-family: Arial, Helvetica, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f0f2f5;
+    color: #222;
+  }
+
+  /* ============================================================ */
+  /* BARRA SUPERIOR DE NAVEGACIÓN ENTRE VISTAS                      */
+  /* ============================================================ */
+  .topbar {
+    background: var(--azul);
+    color: white;
+    padding: 14px 24px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+  .topbar h1 {
+    font-size: 16px;
+    margin: 0;
+    font-weight: 600;
+  }
+  .tabs {
+    display: flex;
+    gap: 8px;
+  }
+  .tab-btn {
+    background: rgba(255,255,255,0.15);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+    padding: 8px 18px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+    font-weight: 600;
+  }
+  .tab-btn.active {
+    background: white;
+    color: var(--azul);
+  }
+
+  @media print {
+    .topbar, .view-captura, .actionbar { display: none !important; }
+  }
+
+  /* ============================================================ */
+  /* VISTA 1: CAPTURA TIPO FORMULARIO / BASE DE DATOS               */
+  /* ============================================================ */
+  .view-captura {
+    max-width: 950px;
+    margin: 24px auto;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 1px 6px rgba(0,0,0,0.12);
+    padding: 0 0 24px 0;
+    overflow: hidden;
+  }
+
+  .captura-header {
+    background: var(--azul-claro);
+    padding: 16px 28px;
+    border-bottom: 2px solid var(--azul);
+  }
+  .captura-header h2 {
+    margin: 0 0 4px 0;
+    font-size: 17px;
+    color: var(--azul);
+  }
+  .captura-header p {
+    margin: 0;
+    font-size: 12.5px;
+    color: #55687d;
+  }
+
+  .seccion {
+    padding: 18px 28px 4px 28px;
+  }
+  .seccion-titulo {
+    font-size: 12.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--azul);
+    border-bottom: 1px solid var(--gris-borde);
+    padding-bottom: 6px;
+    margin-bottom: 14px;
+    margin-top: 10px;
+  }
+
+  .grid-campos {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px 20px;
+  }
+  .campo-full { grid-column: 1 / -1; }
+
+  .campo {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .campo label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #3a4a5c;
+  }
+  .campo .ayuda {
+    font-size: 10.5px;
+    color: #8a97a6;
+    font-weight: 400;
+    margin-left: 4px;
+  }
+  .campo input, .campo textarea {
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 13.5px;
+    padding: 8px 10px;
+    border: 1px solid var(--gris-borde);
+    border-radius: 5px;
+    background: #fbfcfd;
+  }
+  .campo input:focus, .campo textarea:focus {
+    outline: none;
+    border-color: var(--azul);
+    background: white;
+    box-shadow: 0 0 0 2px rgba(26,77,122,0.12);
+  }
+  .campo textarea { resize: vertical; min-height: 38px; }
+
+  /* Tabla repetible de renglones (Tipo de designación / Lugares / Días) */
+  .tabla-renglones {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 4px;
+  }
+  .tabla-renglones th {
+    background: #f3f6f9;
+    font-size: 11.5px;
+    text-transform: uppercase;
+    color: #55687d;
+    text-align: left;
+    padding: 8px 8px;
+    border: 1px solid var(--gris-borde);
+  }
+  .tabla-renglones td {
+    border: 1px solid var(--gris-borde);
+    padding: 4px;
+  }
+  .tabla-renglones input {
+    width: 100%;
+    border: none;
+    padding: 6px 6px;
+    font-size: 13px;
+    background: transparent;
+  }
+  .tabla-renglones input:focus { outline: none; background: #eef5ff; }
+  .tabla-renglones td.col-dias { width: 80px; }
+  .tabla-renglones td.col-quitar { width: 36px; text-align: center; }
+  .btn-quitar-fila {
+    border: none;
+    background: none;
+    color: var(--rojo);
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: bold;
+  }
+  .btn-agregar-fila {
+    margin-top: 8px;
+    background: var(--azul-claro);
+    border: 1px dashed var(--azul);
+    color: var(--azul);
+    padding: 6px 14px;
+    border-radius: 5px;
+    font-size: 12.5px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+
+  .resumen-caja {
+    background: #f8fafc;
+    border: 1px solid var(--gris-borde);
+    border-radius: 6px;
+    padding: 14px 18px;
+    margin-top: 10px;
+  }
+
+  .actionbar {
+    position: sticky;
+    bottom: 0;
+    background: white;
+    border-top: 1px solid var(--gris-borde);
+    padding: 14px 28px;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .btn {
+    border: none;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13.5px;
+    font-weight: 700;
+  }
+  .btn-primario { background: var(--verde); color: white; }
+  .btn-secundario { background: var(--azul); color: white; }
+  .btn-peligro { background: white; color: var(--rojo); border: 1px solid var(--rojo); }
+  .btn:hover { opacity: 0.9; }
+  .estado-guardado { font-size: 12px; color: #8a97a6; margin-left: auto; }
+
+  /* ============================================================ */
+  /* VISTA 2: IMPRESIÓN (overlay sobre papel pre-impreso)           */
+  /* ============================================================ */
+  .view-impresion { display: none; background: #ddd; padding-bottom: 40px; }
+  .view-impresion.activa { display: block; }
+
+  .impresion-toolbar {
+    background: #2c3e50;
+    color: white;
+    padding: 12px 20px;
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+    font-size: 13px;
+    position: sticky;
+    top: 56px;
+    z-index: 50;
+  }
+  .impresion-toolbar button {
+    background: #27ae60;
+    color: white;
+    border: none;
+    padding: 8px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    font-size: 13px;
+  }
+  .impresion-toolbar button.secondary { background: #2980b9; }
+  .impresion-toolbar .hint { color: #cfd8e3; font-size: 11.5px; }
+  .impresion-toolbar label { display: flex; align-items: center; gap: 6px; }
+
+  @media print { .impresion-toolbar { display: none !important; } }
+
+  .page {
+    position: relative;
+    width: 8.5in;
+    height: 11in;
+    background: white;
+    margin: 20px auto;
+    box-shadow: 0 0 8px rgba(0,0,0,0.3);
+    overflow: hidden;
+    page-break-after: always;
+  }
+  .page:last-child { page-break-after: auto; }
+  @media print { .page { box-shadow:none; margin:0; } }
+
+  .page-label {
+    position: absolute;
+    top: -22px;
+    left: 0;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    color: #555;
+  }
+  @media print { .page-label { display: none; } }
+
+  .f {
+    position: absolute;
+    font-size: 11pt;
+    line-height: 1.15;
+    font-family: "Times New Roman", Times, serif;
+    color: #000;
+    white-space: pre-wrap;
+  }
+  .show-guides .f {
+    outline: 1px solid rgba(0, 120, 255, 0.35);
+    background: rgba(0, 150, 255, 0.06);
+  }
+  .center-text { text-align: center; }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <h1>📋 RG-L · Reconocimiento de Gastos por Servicios Prestados</h1>
+  <div class="tabs">
+    <button class="tab-btn active" id="tab-captura" onclick="mostrarVista('captura')">1. Captura de datos</button>
+    <button class="tab-btn" id="tab-impresion" onclick="mostrarVista('impresion')">2. Vista de impresión</button>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- VISTA 1: CAPTURA -->
+<!-- ============================================================ -->
+<div class="view-captura" id="view-captura">
+
+  <div class="captura-header">
+    <h2>Datos del expediente</h2>
+    <p>Llena cada campo con su nombre visible. Estos datos se guardan automáticamente en este navegador y se usan para generar la vista de impresión.</p>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-titulo">Encabezado del formulario</div>
+    <div class="grid-campos">
+      <div class="campo">
+        <label>Por Q. (monto total en números) <span class="ayuda">— casilla "Por Q." superior derecha</span></label>
+        <input type="text" id="d_porQ" placeholder="Ej. 1,500.00">
+      </div>
+      <div class="campo">
+        <label>No. de formulario (correlativo) <span class="ayuda">— normalmente ya viene pre-impreso</span></label>
+        <input type="text" id="d_no" maxlength="4" placeholder="0000">
+      </div>
+      <div class="campo campo-full">
+        <label>Recibí de: <span class="ayuda">— entidad o dependencia que entrega el dinero</span></label>
+        <input type="text" id="d_recibiDe" placeholder="Ej. Ministerio de Agricultura, Ganadería y Alimentación">
+      </div>
+      <div class="campo campo-full">
+        <label>La cantidad de (en letras): <span class="ayuda">— el monto escrito con palabras</span></label>
+        <input type="text" id="d_cantidadLetras" placeholder="Ej. Un mil quinientos quetzales exactos">
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-titulo">Reconocimiento de gastos por servicios prestados</div>
+    <table class="tabla-renglones" id="tabla-renglones">
+      <thead>
+        <tr>
+          <th style="width:38%">Tipo de designación</th>
+          <th style="width:38%">Lugares en que se realizará</th>
+          <th class="col-dias">Número de días</th>
+          <th class="col-quitar"></th>
+        </tr>
+      </thead>
+      <tbody id="tbody-renglones">
+        <!-- filas generadas por JS -->
+      </tbody>
+    </table>
+    <button class="btn-agregar-fila" onclick="agregarFila()">+ Agregar renglón</button>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-titulo">Liquidación</div>
+    <div class="resumen-caja">
+      <div class="grid-campos">
+        <div class="campo">
+          <label>Suma del Reconocimiento de Gastos (Q.)</label>
+          <input type="text" id="d_sumaReconocimiento" placeholder="0.00">
+        </div>
+        <div class="campo"></div>
+        <div class="campo">
+          <label>Recibido por Concepto de Formularios RG-A No.</label>
+          <input type="text" id="d_rgaNo" placeholder="Ej. 00045">
+        </div>
+        <div class="campo">
+          <label>Monto recibido por Formularios RG-A (Q.)</label>
+          <input type="text" id="d_rgaQ" placeholder="0.00">
+        </div>
+        <div class="campo">
+          <label>Reintegro a la Dependencia (–) (Q.)</label>
+          <input type="text" id="d_reintegroQ" placeholder="0.00">
+        </div>
+        <div class="campo">
+          <label>Complemento a mi favor (+) (Q.)</label>
+          <input type="text" id="d_complementoQ" placeholder="0.00">
+        </div>
+        <div class="campo">
+          <label>Total (Q.)</label>
+          <input type="text" id="d_totalQ" placeholder="0.00">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-titulo">Persona designada</div>
+    <div class="grid-campos">
+      <div class="campo">
+        <label>Nombre completo</label>
+        <input type="text" id="d_nombre" placeholder="Ej. Carlos Pérez López">
+      </div>
+      <div class="campo">
+        <label>NIT</label>
+        <input type="text" id="d_nit" placeholder="Ej. 1234567-8">
+      </div>
+      <div class="campo campo-full">
+        <label>Tipo de servicio</label>
+        <input type="text" id="d_tipoServicio" placeholder="Ej. Asesoría técnica agropecuaria">
+      </div>
+      <div class="campo">
+        <label>Lugar y fecha</label>
+        <input type="text" id="d_lugarFecha" placeholder="Ej. Guatemala, 24/06/2026">
+      </div>
+    </div>
+  </div>
+
+  <div class="seccion">
+    <div class="seccion-titulo">Revisión y visto bueno (opcional)</div>
+    <div class="grid-campos">
+      <div class="campo">
+        <label>Nombre — Revisado por</label>
+        <input type="text" id="d_revisadoPor" placeholder="Nombre de quien revisa">
+      </div>
+      <div class="campo">
+        <label>Nombre — Vo. Bo. Autoridad</label>
+        <input type="text" id="d_voBoAutoridad" placeholder="Nombre de la autoridad">
+      </div>
+    </div>
+  </div>
+
+  <div class="actionbar">
+    <button class="btn btn-secundario" onclick="mostrarVista('impresion')">→ Ir a vista de impresión</button>
+    <button class="btn btn-peligro" onclick="limpiarTodo()">🗑️ Limpiar todos los datos</button>
+    <span class="estado-guardado" id="estado-guardado">Los cambios se guardan automáticamente.</span>
+  </div>
+</div>
+
+<!-- ============================================================ -->
+<!-- VISTA 2: IMPRESIÓN -->
+<!-- ============================================================ -->
+<div class="view-impresion" id="view-impresion">
+
+  <div class="impresion-toolbar">
+    <button onclick="window.print()">🖨️ Imprimir</button>
+    <button class="secondary" onclick="mostrarVista('captura')">← Volver a captura de datos</button>
+    <label><input type="checkbox" id="toggleGuides" onchange="toggleGuides()"> Ver guías de alineación</label>
+    <label><input type="checkbox" id="toggleNo" onchange="toggleNoField()"> Mostrar campo "No."</label>
+    <span class="hint">Calibra tu impresora con una hoja en blanco antes de imprimir sobre el formulario pre-impreso.</span>
+  </div>
+
+  <!-- PÁGINA ORIGINAL -->
+  <div class="page" id="page-original">
+    <div class="page-label">ORIGINAL: EXPEDIENTE</div>
+    <div class="f center-text" id="p_no_orig" style="left:6.81in; top:1.22in; width:1.0in; display:none;"></div>
+    <div class="f" id="p_porQ_orig" style="left:6.18in; top:1.27in; width:2.0in;"></div>
+    <div class="f" id="p_recibiDe_orig" style="left:1.4in; top:1.75in; width:6.4in;"></div>
+    <div class="f" id="p_cantidadLetras_orig" style="left:1.7in; top:2.00in; width:6.1in;"></div>
+    <div class="f" id="p_tipoDesignacion_orig" style="left:0.72in; top:3.15in; width:3.1in; height:2.6in;"></div>
+    <div class="f" id="p_lugares_orig" style="left:3.97in; top:3.15in; width:2.13in; height:2.6in;"></div>
+    <div class="f center-text" id="p_numDias_orig" style="left:6.23in; top:4.15in; width:1.5in; height:2.6in;"></div>
+    <div class="f" id="p_sumaReconocimiento_orig" style="left:6.70in; top:6.02in; width:1.4in;"></div>
+    <div class="f center-text" id="p_rgaNo_orig" style="left:4.10in; top:6.50in; width:2.3in;"></div>
+    <div class="f" id="p_rgaQ_orig" style="left:6.70in; top:6.49in; width:1.38in;"></div>
+    <div class="f" id="p_reintegroQ_orig" style="left:6.70in; top:6.81in; width:1.38in;"></div>
+    <div class="f" id="p_complementoQ_orig" style="left:6.70in; top:7.15in; width:1.38in;"></div>
+    <div class="f" id="p_totalQ_orig" style="left:6.70in; top:7.47in; width:1.38in;"></div>
+    <div class="f" id="p_nombre_orig" style="left:1.32in; top:8.03in; width:4.0in;"></div>
+    <div class="f" id="p_nit_orig" style="left:6.65in; top:8.03in; width:2.05in;"></div>
+    <div class="f" id="p_tipoServicio_orig" style="left:1.84in; top:8.37in; width:5.95in;"></div>
+    <div class="f" id="p_lugarFecha_orig" style="left:1.67in; top:8.69in; width:2.45in;"></div>
+  </div>
+
+  <!-- PÁGINA DUPLICADO -->
+  <div class="page" id="page-duplicado">
+    <div class="page-label">DUPLICADO: ENCARGADO DE FORMULARIOS</div>
+    <div class="f center-text" id="p_no_dup" style="left:6.81in; top:1.22in; width:1.0in; display:none;"></div>
+    <div class="f" id="p_porQ_dup" style="left:5.78in; top:1.53in; width:2.0in;"></div>
+    <div class="f" id="p_recibiDe_dup" style="left:1.4in; top:1.97in; width:6.4in;"></div>
+    <div class="f" id="p_cantidadLetras_dup" style="left:1.7in; top:2.24in; width:6.1in;"></div>
+    <div class="f" id="p_tipoDesignacion_dup" style="left:0.72in; top:3.15in; width:3.1in; height:2.6in;"></div>
+    <div class="f" id="p_lugares_dup" style="left:3.97in; top:3.15in; width:2.13in; height:2.6in;"></div>
+    <div class="f center-text" id="p_numDias_dup" style="left:6.23in; top:3.15in; width:1.5in; height:2.6in;"></div>
+    <div class="f" id="p_sumaReconocimiento_dup" style="left:6.4in; top:5.89in; width:1.4in;"></div>
+    <div class="f center-text" id="p_rgaNo_dup" style="left:3.83in; top:6.33in; width:2.3in;"></div>
+    <div class="f" id="p_rgaQ_dup" style="left:6.43in; top:6.33in; width:1.38in;"></div>
+    <div class="f" id="p_reintegroQ_dup" style="left:6.43in; top:6.62in; width:1.38in;"></div>
+    <div class="f" id="p_complementoQ_dup" style="left:6.43in; top:6.93in; width:1.38in;"></div>
+    <div class="f" id="p_totalQ_dup" style="left:6.43in; top:7.23in; width:1.38in;"></div>
+    <div class="f" id="p_nombre_dup" style="left:1.32in; top:7.73in; width:4.0in;"></div>
+    <div class="f" id="p_nit_dup" style="left:5.74in; top:7.73in; width:2.05in;"></div>
+    <div class="f" id="p_tipoServicio_dup" style="left:1.84in; top:8.03in; width:5.95in;"></div>
+    <div class="f" id="p_lugarFecha_dup" style="left:1.67in; top:8.34in; width:2.45in;"></div>
+    <div class="f center-text" id="p_revisadoPor_dup" style="left:0.75in; top:8.95in; width:3.3in; height:0.5in; font-size:10pt;"></div>
+    <div class="f center-text" id="p_voBoAutoridad_dup" style="left:4.25in; top:8.95in; width:3.4in; height:0.5in; font-size:10pt;"></div>
+  </div>
+
+</div>
+
+<script>
+const STORAGE_KEY = 'maga_rgl_datos_v1';
+
+const CAMPOS_SIMPLES = [
+  'no','porQ','recibiDe','cantidadLetras','sumaReconocimiento',
+  'rgaNo','rgaQ','reintegroQ','complementoQ','totalQ',
+  'nombre','nit','tipoServicio','lugarFecha','revisadoPor','voBoAutoridad'
+];
+
+let renglones = [{ tipo: '', lugar: '', dias: '' }];
+
+/* ---------- Persistencia local ---------- */
+function guardar() {
+  const datos = { campos: {}, renglones: renglones };
+  CAMPOS_SIMPLES.forEach(c => {
+    const el = document.getElementById('d_' + c);
+    if (el) datos.campos[c] = el.value;
+  });
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(datos));
+  } catch (e) {
+    console.warn('No se pudo guardar localmente', e);
+  }
+  actualizarVistaImpresion();
+}
+
+function cargar() {
+  let datos = null;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) datos = JSON.parse(raw);
+  } catch (e) { /* noop */ }
+
+  if (datos) {
+    CAMPOS_SIMPLES.forEach(c => {
+      const el = document.getElementById('d_' + c);
+      if (el && datos.campos && datos.campos[c] !== undefined) el.value = datos.campos[c];
+    });
+    if (datos.renglones && datos.renglones.length) {
+      renglones = datos.renglones;
+    }
+  }
+  renderTablaRenglones();
+  actualizarVistaImpresion();
+}
+
+/* ---------- Tabla dinámica de renglones ---------- */
+function renderTablaRenglones() {
+  const tbody = document.getElementById('tbody-renglones');
+  tbody.innerHTML = '';
+  renglones.forEach((r, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input type="text" value="${escapeAttr(r.tipo)}" oninput="actualizarRenglon(${i},'tipo',this.value)" placeholder="Ej. Comisión oficial"></td>
+      <td><input type="text" value="${escapeAttr(r.lugar)}" oninput="actualizarRenglon(${i},'lugar',this.value)" placeholder="Ej. Ciudad de Guatemala"></td>
+      <td class="col-dias"><input type="text" value="${escapeAttr(r.dias)}" oninput="actualizarRenglon(${i},'dias',this.value)" placeholder="3"></td>
+      <td class="col-quitar"><button class="btn-quitar-fila" onclick="quitarFila(${i})" title="Quitar renglón">✕</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+function escapeAttr(s) {
+  return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');
+}
+
+function actualizarRenglon(i, campo, valor) {
+  renglones[i][campo] = valor;
+  guardar();
+}
+
+function agregarFila() {
+  renglones.push({ tipo: '', lugar: '', dias: '' });
+  renderTablaRenglones();
+  guardar();
+}
+
+function quitarFila(i) {
+  if (renglones.length === 1) {
+    renglones[0] = { tipo: '', lugar: '', dias: '' };
+  } else {
+    renglones.splice(i, 1);
+  }
+  renderTablaRenglones();
+  guardar();
+}
+
+/* ---------- Sincronizar captura -> vista de impresión ---------- */
+function actualizarVistaImpresion() {
+  CAMPOS_SIMPLES.forEach(c => {
+    const el = document.getElementById('d_' + c);
+    const valor = el ? el.value : '';
+    ['orig','dup'].forEach(suf => {
+      const destino = document.getElementById('p_' + c + '_' + suf);
+      if (destino) destino.textContent = valor;
+    });
+  });
+
+  const tipos = renglones.map(r => r.tipo || '').join('\n');
+  const lugares = renglones.map(r => r.lugar || '').join('\n');
+  const dias = renglones.map(r => r.dias || '').join('\n');
+  ['orig','dup'].forEach(suf => {
+    document.getElementById('p_tipoDesignacion_' + suf).textContent = tipos;
+    document.getElementById('p_lugares_' + suf).textContent = lugares;
+    document.getElementById('p_numDias_' + suf).textContent = dias;
+  });
+}
+
+/* ---------- Navegación entre vistas ---------- */
+function mostrarVista(nombre) {
+  document.getElementById('view-captura').style.display = (nombre === 'captura') ? 'block' : 'none';
+  document.getElementById('view-impresion').classList.toggle('activa', nombre === 'impresion');
+  document.getElementById('tab-captura').classList.toggle('active', nombre === 'captura');
+  document.getElementById('tab-impresion').classList.toggle('active', nombre === 'impresion');
+  if (nombre === 'impresion') actualizarVistaImpresion();
+}
+
+function toggleGuides() {
+  document.getElementById('view-impresion').classList.toggle('show-guides');
+}
+
+function toggleNoField() {
+  const show = document.getElementById('toggleNo').checked;
+  document.getElementById('p_no_orig').style.display = show ? 'block' : 'none';
+  document.getElementById('p_no_dup').style.display = show ? 'block' : 'none';
+}
+
+function limpiarTodo() {
+  if (!confirm('¿Limpiar todos los datos capturados? Esta acción no se puede deshacer.')) return;
+  CAMPOS_SIMPLES.forEach(c => {
+    const el = document.getElementById('d_' + c);
+    if (el) el.value = '';
+  });
+  renglones = [{ tipo: '', lugar: '', dias: '' }];
+  renderTablaRenglones();
+  guardar();
+}
+
+/* ---------- Inicialización ---------- */
+document.addEventListener('DOMContentLoaded', () => {
+  CAMPOS_SIMPLES.forEach(c => {
+    const el = document.getElementById('d_' + c);
+    if (el) el.addEventListener('input', guardar);
+  });
+  cargar();
+});
+</script>
+
+</body>
+</html>
